@@ -1,0 +1,56 @@
+# ----------------------------------------------- #
+# Note: this file originates in template-node-lib #
+# ----------------------------------------------- #
+
+services:
+  # ---- mega-linter ---- #
+  lint:
+    profiles: ["dev"]
+    image: oxsecurity/megalinter-javascript:v7.2.1
+    volumes:
+      - ./:/tmp/lint
+    environment:
+      MEGALINTER_CONFIG: .github/linters/.mega-linter.yml
+      REPORT_OUTPUT_FOLDER: none
+      VALIDATE_ALL_CODEBASE: true
+
+  # ---- readme generator ---- #
+  readme:
+    profiles: ["dev"]
+    image: pandoc/minimal:2.19
+    volumes:
+      - ./:/data
+    command: --defaults=.pandoc.yml
+
+  app:
+    profiles: ["app"]
+    image: node:latest
+    working_dir: /usr/src/lib
+    entrypoint: npm --no-update-notifier --no-fund --no-audit
+    command: start
+    tty: true
+    volumes:
+      - ./:/usr/src/lib
+    environment:
+      NODE_ENV: test
+
+  test-command:
+    extends: app
+    command: run test
+
+  test:
+    profiles: ["test"]
+    extends: test-command
+    depends_on:
+      - node18
+      - node20
+
+  node18:
+    profiles: ["test"]
+    extends: test-command
+    image: node:18-alpine
+
+  node20:
+    profiles: ["test"]
+    extends: test-command
+    image: node:20-alpine
